@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>كشف الرقم السري</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 450px; /* افتراضي للشاشات الصغيرة */
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 28px;
+        }
+        .secret-and-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .secret-display {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex: 1;
+        }
+        .secret-box {
+            width: 50px;
+            height: 50px;
+            background: #e9ecef;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .secret-box.revealed {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .toggle-btn, .reset-btn {
+            background: #ffa500;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            font-weight: bold;
+        }
+        .toggle-btn:hover, .reset-btn:hover {
+            background: #ff8c00;
+        }
+        .input-section {
+            margin-bottom: 25px;
+        }
+        .input-row {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        input {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            font-size: 20px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            direction: rtl;
+            readonly;
+            cursor: pointer;
+        }
+        input.active {
+            border-color: #ff69b4;
+            background: #ffe6f0;
+            box-shadow: 0 0 5px rgba(255, 105, 180, 0.3);
+        }
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        button {
+            background: #ff69b4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            font-weight: bold;
+        }
+        button:hover:not(:disabled) {
+            background: #ff1493;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .reset-btn {
+            background: #6c757d;
+        }
+        .reset-btn:hover:not(:disabled) {
+            background: #5a6268;
+        }
+        .result {
+            font-size: 24px;
+            font-weight: bold;
+            min-height: 30px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            text-align: center;
+        }
+        .plus { color: #28a745; }
+        .minus { color: #fd7e14; }
+        .success { color: #28a745; background: #d4edda; border-color: #c3e6cb; }
+        .timer {
+            margin-bottom: 20px;
+            font-size: 20px;
+            color: #495057;
+            font-weight: bold;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        .time-up { color: #dc3545; background: #f8d7da; border-color: #f5c6cb; }
+        /* دمج تاريخ المحاولات مع العداد */
+        .attempts-history {
+            margin-top: 25px;
+            text-align: right;
+            font-size: 14px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        .attempts-history h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .attempt {
+            margin-bottom: 8px;
+            padding: 8px;
+            background: #ffffff;
+            border-radius: 6px;
+            border-left: 3px solid #ff69b4;
+            text-align: right;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .guess-text {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .result-small {
+            font-size: 14px;
+            font-weight: bold;
+            display: flex;
+            gap: 3px;
+        }
+        /* لوحة الأرقام (دائماً مرئية وفعالة، قابلة للسحب) */
+        .number-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            max-width: 200px;
+            margin: 0;
+            position: absolute;
+            top: 70%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            cursor: move;
+            touch-action: none;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            opacity: 1;
+            visibility: visible;
+        }
+        .number-pad button {
+            width: 50px;
+            height: 50px;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #333;
+        }
+        .number-pad button:hover {
+            background: #e9ecef;
+            border-color: #ff69b4;
+        }
+        .number-pad .delete-btn {
+            background: #dc3545;
+            color: white;
+        }
+        .number-pad .delete-btn:hover {
+            background: #c82333;
+        }
+
+        /* تحسينات للشاشات الكبيرة (أكبر من 768px): عرض كامل وتكبير */
+        @media (min-width: 769px) {
+            .container {
+                max-width: 800px; /* توسيع للشاشات الكبيرة */
+                width: 90%; /* يأخذ معظم المساحة */
+                padding: 40px; /* تباعد أكبر */
+            }
+            h1 {
+                font-size: 36px; /* تكبير العنوان */
+                margin-bottom: 30px;
+            }
+            .secret-box, input {
+                width: 70px; /* تكبير الحقول */
+                height: 70px;
+                font-size: 28px; /* تكبير النص داخلها */
+            }
+            .secret-display, .input-row {
+                gap: 20px; /* تباعد أكبر بين الحقول */
+            }
+            button {
+                padding: 15px 30px;
+                font-size: 20px; /* تكبير أزرار التحقق والإعادة */
+            }
+            .toggle-btn, .reset-btn {
+                padding: 12px 18px;
+                font-size: 16px;
+            }
+            .result {
+                font-size: 32px; /* تكبير النتيجة */
+                padding: 15px;
+            }
+            .timer {
+                font-size: 26px; /* تكبير المؤقت */
+                padding: 15px;
+            }
+            .attempts-history {
+                font-size: 18px; /* تكبير عام للتاريخ */
+                padding: 15px;
+            }
+            .attempts-history h3 {
+                font-size: 22px; /* تكبير العنوان */
+                margin-bottom: 15px;
+            }
+            .attempt {
+                margin-bottom: 12px;
+                padding: 12px; /* تباعد أكبر */
+                font-size: 18px;
+                border-left-width: 4px; /* خط أعرض */
+            }
+            .guess-text {
+                font-size: 28px; /* تكبير الأرقام في التاريخ */
+                padding: 8px 12px; /* تباعد أكبر */
+            }
+            .result-small {
+                font-size: 24px; /* تكبير الإشارات (+ و -) */
+                gap: 8px; /* تباعد أفضل بين الإشارات */
+            }
+            .number-pad {
+                max-width: 250px; /* توسيع اللوحة */
+                gap: 12px;
+                padding: 15px;
+            }
+            .number-pad button {
+                width: 70px;
+                height: 70px;
+                font-size: 24px; /* تكبير أزرار الأرقام */
+            }
+            .secret-and-toggle {
+                gap: 20px; /* تباعد أكبر */
+            }
+            .buttons {
+                gap: 15px;
+            }
+        }
+
+        /* للشاشات الصغيرة (حفاظ على التصميم الأصلي مع تكبير طفيف للتاريخ) */
+        @media (max-width: 768px) {
+            .container { 
+                padding: 20px; 
+                max-width: 100%; /* يأخذ كامل العرض على الموبايل */
+            }
+            .buttons { 
+                flex-direction: column; 
+                align-items: center; 
+            }
+            input, .secret-box { 
+                width: 45px; 
+                height: 45px; 
+                font-size: 18px; 
+            }
+            button { 
+                width: 100%; 
+                max-width: 200px; 
+            }
+            .secret-and-toggle { 
+                flex-direction: column; 
+                gap: 10px; 
+            }
+            .number-pad { 
+                max-width: 180px; 
+            }
+            .number-pad button { 
+                width: 45px; 
+                height: 45px; 
+                font-size: 16px; 
+            }
+            .attempts-history { 
+                font-size: 12px; 
+                padding: 8px; 
+            }
+            .attempts-history h3 { 
+                font-size: 14px; 
+            }
+            .attempt { 
+                padding: 6px; 
+            }
+            .guess-text { 
+                font-size: 18px; /* تكبير الأرقام على الشاشات الصغيرة */
+                padding: 3px 6px; 
+            }
+            .result-small { 
+                font-size: 16px; /* تكبير الإشارات على الشاشات الصغيرة */
+                gap: 4px; /* تباعد أفضل */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>كشف الرقم السري</h1>
+        
+        <!-- المؤقت -->
+        <div id="timer" class="timer">الوقت المتبقي: 10:00</div>
+        
+        <!-- قسم الرقم السري والزر -->
+        <div class="secret-and-toggle">
+            <button class="toggle-btn" onclick="toggleSecret()">إظهار/إخفاء</button>
+            <div class="secret-display" id="secretDisplay">
+                <div class="secret-box" data-index="0">?</div>
+                <div class="secret-box" data-index="1">?</div>
+                <div class="secret-box" data-index="2">?</div>
+                <div class="secret-box" data-index="3">?</div>
+            </div>
+            <button class="reset-btn" onclick="resetGame()">رقم جديد</button>
+        </div>
+        
+        <!-- قسم الإدخال -->
+        <div class="input-section">
+            <div class="input-row">
+                <input type="text" id="digit4" placeholder="0" maxlength="1" dir="rtl" readonly>
+                <input type="text" id="digit3" placeholder="0" maxlength="1" dir="rtl" readonly>
+                <input type="text" id="digit2" placeholder="0" maxlength="1" dir="rtl" readonly>
+                <input type="text" id="digit1" placeholder="0" maxlength="1" dir="rtl" readonly>
+            </div>
+            <div class="buttons">
+                <button id="checkBtn" onclick="checkGuess()" disabled>تحقق</button>
+            </div>
+            
+            <!-- عرض النتيجة (مباشرة تحت الأزرار) -->
+            <div id="result" class="result"></div>
+            
+            <!-- لوحة الأرقام (دائماً مرئية) -->
+            <div class="number-pad" id="numberPad">
+                <button onclick="enterNumber(1)">1</button>
+                <button onclick="enterNumber(2)">2</button>
+                <button onclick="enterNumber(3)">3</button>
+                <button onclick="enterNumber(4)">4</button>
+                <button onclick="enterNumber(5)">5</button>
+                <button onclick="enterNumber(6)">6</button>
+                <button onclick="enterNumber(7)">7</button>
+                <button onclick="enterNumber(8)">8</button>
+                <button onclick="enterNumber(9)">9</button>
+                <button onclick="enterNumber(0)">0</button>
+                <button class="delete-btn" onclick="deleteNumber()">🗑️</button>
+            </div>
+        </div>
+        
+        <!-- تاريخ المحاولات (مدمج مع العداد) -->
+        <div id="attempts-history" class="attempts-history">
+            <h3>تاريخ المحاولات (عدد المحاولات: 0):</h3>
+        </div>
+    </div>
+
+    <script>
+        // متغيرات اللعبة
+        let secretNumber = [];
+        let attemptsCount = 0;
+        let attemptsHistory = [];
+        let secretVisible = false;
+        let timeLeft = 600; // 10 دقائق = 600 ثانية
+        let timerInterval;
+        let timerStarted = false;
+        let activeInput = null;
+
+        // متغيرات السحب
+        let isDragging = false;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        // توليد الرقم السري عند تحميل الصفحة
+        window.onload = function() {
+            generateSecret();
+            setupInputs();
+            setActiveInput(document.getElementById('digit1')); // ابدأ من digit1 (الأيسر)
+            setupDragging(); // إعداد السحب
+        };
+
+        // توليد رقم سري (4 أرقام من 0-9، يمكن التكرار)
+        function generateSecret() {
+            secretNumber = [];
+            for (let i = 0; i < 4; i++) {
+                secretNumber.push(Math.floor(Math.random() * 10));
+            }
+            hideSecret();
+        }
+
+        // إعداد الحقول (بدون listeners للكيبورد)
+        function setupInputs() {
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('click', function() {
+                    setActiveInput(this);
+                });
+            });
+        }
+
+        // تحديد الخانة النشطة وإزالة النشاط من الآخرين
+        function setActiveInput(input) {
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(inp => inp.classList.remove('active'));
+            input.classList.add('active');
+            activeInput = input;
+        }
+
+        // تحديث حالة زر التحقق (تفعيله إذا كانت جميع الحقول مملوءة)
+        function updateCheckButton() {
+            const inputs = document.querySelectorAll('input');
+            const values = Array.from(inputs).map(input => input.value);
+            const checkBtn = document.getElementById('checkBtn');
+            const allFilled = values.every(val => val !== '');
+            checkBtn.disabled = !allFilled;
+        }
+
+        // إعداد السحب للوحة الأرقام (يدعم الماوس واللمس)
+        function setupDragging() {
+            const pad = document.getElementById('numberPad');
+
+            // بدء السحب بالماوس
+            pad.addEventListener('mousedown', startDrag);
+            // بدء السحب باللمس
+            pad.addEventListener('touchstart', startDrag);
+
+            // متابعة السحب
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('touchmove', drag);
+
+            // إيقاف السحب
+            document.addEventListener('mouseup', stopDrag);
+            document.addEventListener('touchend', stopDrag);
+        }
+
+        // بدء السحب
+        function startDrag(e) {
+            isDragging = true;
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+            const rect = pad.getBoundingClientRect();
+            offsetX = clientX - rect.left;
+            offsetY = clientY - rect.top;
+            e.preventDefault(); // منع السلوك الافتراضي
+        }
+
+        // السحب
+        function drag(e) {
+            if (!isDragging) return;
+            const pad = document.getElementById('numberPad');
+            const clientX = e.clientX || e.touches[0].clientX;
+            const clientY = e.clientY || e.touches[0].clientY;
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const padWidth = pad.offsetWidth;
+            const padHeight = pad.offsetHeight;
+
+            // حساب الموضع الجديد مع الحدود
+            let newLeft = clientX - offsetX;
+            let newTop = clientY - offsetY;
+            newLeft = Math.max(0, Math.min(newLeft, viewportWidth - padWidth));
+            newTop = Math.max(0, Math.min(newTop, viewportHeight - padHeight));
+
+            pad.style.left = newLeft + 'px';
+            pad.style.top = newTop + 'px';
+            pad.style.transform = 'translate(0, 0)'; // إزالة التحويل الأولي أثناء السحب
+            e.preventDefault();
+        }
+
+        // إيقاف السحب
+        function stopDrag() {
+            isDragging = false;
+        }
+
+        // إدخال رقم من لوحة الأرقام
+        function enterNumber(num) {
+            playClickSound(); // تشغيل الصوت عند النقر
+            if (!activeInput) {
+                setActiveInput(document.getElementById('digit1')); // ابدأ من digit1 إذا لم يكن نشط
+            }
+            activeInput.value = num;
+            updateCheckButton();
+
+            // بدء المؤقت عند أول إدخال إذا لم يبدأ بعد
+            if (!timerStarted) {
+                startTimer();
+                timerStarted = true;
+            }
+
+            // الانتقال إلى الخانة التالية (previousElementSibling في DOM: digit1 -> digit2 -> digit3 -> digit4)
+            const nextInput = activeInput.previousElementSibling;
+            if (nextInput && nextInput.tagName === 'INPUT') {
+                setActiveInput(nextInput);
+            }
+        }
+
+        // حذف الرقم من الخانة النشطة
+        function deleteNumber() {
+            playClickSound(); // تشغيل الصوت عند النقر
+            if (activeInput) {
+                activeInput.value = '';
+                updateCheckButton();
+            }
+        }
+
+        // تشغيل صوت النقر باستخدام Web Audio API
+        function playClickSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime); // تردد الصوت
+                oscillator.type = 'square'; // نوع الصوت
+                
+                gainNode.gain.setValueAtTime(0.1, audioContext.currentTime); // حجم الصوت
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1); // تلاشي سريع
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1); // مدة الصوت 100ms
+            } catch (e) {
+                // إذا فشل، لا يحدث شيء (صمت)
+                console.log('Audio not supported');
+            }
+        }
+
+        // التحقق من التخمين مع دعم التكرار (الإصلاح: ترتيب guess صحيح)
+        function checkGuess() {
+            // قراءة guess بالترتيب الصحيح: digit4 (موضع 0، أيمن) إلى digit1 (موضع 3، أيسر)
+            let guess = [
+                parseInt(document.getElementById('digit4').value) || 0,
+                parseInt(document.getElementById('digit3').value) || 0,
+                parseInt(document.getElementById('digit2').value) || 0,
+                parseInt(document.getElementById('digit1').value) || 0
+            ];
+
+            attemptsCount++;
+            updateAttemptsHistory(); // تحديث التاريخ المدمج
+
+            let bulls = 0;
+            let cows = 0;
+
+            // حساب Bulls (مواضع صحيحة)
+            for (let i = 0; i < 4; i++) {
+                if (guess[i] === secretNumber[i]) {
+                    bulls++;
+                }
+            }
+
+            // حساب Cows (أرقام صحيحة في مواضع خاطئة، مع دعم التكرار)
+            let secretFreq = {};
+            let guessFreq = {};
+
+            for (let i = 0; i < 4; i++) {
+                if (guess[i] !== secretNumber[i]) {
+                    if (!secretFreq[secretNumber[i]]) secretFreq[secretNumber[i]] = 0;
+                    secretFreq[secretNumber[i]]++;
+                    if (!guessFreq[guess[i]]) guessFreq[guess[i]] = 0;
+                    guessFreq[guess[i]]++;
+                }
+            }
+
+            for (let num in guessFreq) {
+                if (secretFreq[num]) {
+                    cows += Math.min(guessFreq[num], secretFreq[num]);
+                }
+            }
+
+            // إضافة إلى التاريخ
+            attemptsHistory.push({ guess: guess, bulls: bulls, cows: cows });
+            updateAttemptsHistory();
+
+            // عرض النتيجة
+            const resultDiv = document.getElementById('result');
+            if (bulls === 4) {
+                resultDiv.innerHTML = 'مبروك! لقد كشفت الرقم السري! 🎉';
+                resultDiv.classList.add('success');
+                revealSecret();
+                secretVisible = true;
+                stopTimer();
+            } else {
+                let resultText = '';
+                for (let i = 0; i < bulls; i++) {
+                    resultText += '<span class="plus">+</span>';
+                }
+                for (let i = 0; i < cows; i++) {
+                    resultText += '<span class="minus">-</span>';
+                }
+                if (bulls === 0 && cows === 0) {
+                    resultText = 'لا توجد مطابقة';
+                }
+                resultDiv.innerHTML = resultText;
+                resultDiv.classList.remove('success');
+            }
+
+            // مسح الإدخال
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => input.value = '');
+            updateCheckButton();
+            setActiveInput(document.getElementById('digit1')); // ابدأ من digit1 مرة أخرى
+        }
+
+        // تحديث تاريخ المحاولات (مدمج مع العداد، وعرض الأرقام معكوسة للتطابق البصري)
+        function updateAttemptsHistory() {
+            const historyDiv = document.getElementById('attempts-history');
+            historyDiv.innerHTML = `<h3>تاريخ المحاولات (عدد المحاولات: ${attemptsCount}):</h3>`;
+            if (attemptsHistory.length === 0) {
+                historyDiv.innerHTML += '<p>لا توجد محاولات بعد.</p>';
+            } else {
+                attemptsHistory.forEach((attempt, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'attempt';
+
+                    // عرض الأرقام معكوسة لتطابق الترتيب البصري (من اليسار إلى اليمين كما في الواجهة)
+                    const guessText = document.createElement('div');
+                    guessText.className = 'guess-text';
+                    guessText.textContent = attempt.guess.slice().reverse().join(''); // عكس للتطابق
+                    div.appendChild(guessText);
+
+                    const resultSmall = document.createElement('div');
+                    resultSmall.className = 'result-small';
+                    let resultText = '';
+                    for (let i = 0; i < attempt.bulls; i++) {
+                        resultText += '<span class="plus">+</span>';
+                    }
+                    for (let i = 0; i < attempt.cows; i++) {
+                        resultText += '<span class="minus">-</span>';
+                    }
+                    if (attempt.bulls === 0 && attempt.cows === 0) {
+                        resultText = 'لا توجد مطابقة';
+                    }
+                    resultSmall.innerHTML = resultText;
+                    div.appendChild(resultSmall);
+
+                    historyDiv.appendChild(div);
+                });
+            }
+        }
+
+        // كشف الرقم السري
+        function revealSecret() {
+            const boxes = document.querySelectorAll('.secret-box');
+            boxes.forEach((box, index) => {
+                box.textContent = secretNumber[index];
+                box.classList.add('revealed');
+            });
+        }
+
+        // إخفاء الرقم السري
+        function hideSecret() {
+            const boxes = document.querySelectorAll('.secret-box');
+            boxes.forEach(box => {
+                box.textContent = '?';
+                box.classList.remove('revealed');
+            });
+        }
+
+        // تبديل إظهار/إخفاء الرقم
+        function toggleSecret() {
+            if (secretVisible) {
+                hideSecret();
+                secretVisible = false;
+            } else {
+                revealSecret();
+                secretVisible = true;
+            }
+        }
+
+        // إعادة اللعب
+        function resetGame() {
+            generateSecret();
+            attemptsCount = 0;
+            attemptsHistory = [];
+            secretVisible = false;
+            timeLeft = 600;
+            timerStarted = false;
+            stopTimer();
+            document.getElementById('result').innerHTML = '';
+            document.getElementById('result').classList.remove('success');
+            document.getElementById('timer').classList.remove('time-up');
+            updateAttemptsHistory(); // تحديث التاريخ المدمج
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => input.value = '');
+            updateCheckButton();
+            setActiveInput(document.getElementById('digit1')); // ابدأ من digit1
+            // إعادة تعيين موضع اللوحة إلى الأولي
+            const pad = document.getElementById('numberPad');
+            pad.style.top = '70%';
+            pad.style.left = '50%';
+            pad.style.transform = 'translate(-50%, -50%)';
+        }
+
+        // بدء المؤقت
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                if (timeLeft <= 0) {
+                    timeUp();
+                }
+            }, 1000);
+        }
+
+        // إيقاف المؤقت
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+
+        // تحديث عرض المؤقت
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            const timerDiv = document.getElementById('timer');
+            timerDiv.textContent = `الوقت المتبقي: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // عند انتهاء الوقت
+        function timeUp() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'انتهى الوقت! الرقم السري كان: ' + secretNumber.slice().reverse().join('') + ' 😞'; // عكس للتطابق البصري
+            resultDiv.classList.add('success');
+            revealSecret();
+            secretVisible = true;
+            document.getElementById('timer').classList.add('time-up');
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => input.disabled = true);
+            document.getElementById('checkBtn').disabled = true;
+        }
+    </script>
+</body>
+</html>
